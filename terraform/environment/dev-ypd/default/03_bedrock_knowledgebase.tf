@@ -1,0 +1,95 @@
+# ================================================================
+# Bedrock Knowledge Base
+# ================================================================
+
+# Aurora PostgreSQL をベクターデータベースとして使用する Knowledge Base
+resource "aws_bedrockagent_knowledge_base" "main" {
+  name        = local.bedrock_knowledge_base_name
+  description = local.bedrock_knowledge_base_description
+  role_arn    = aws_iam_role.bedrock.arn
+
+  # Knowledge Base の設定（ベクター埋め込み）
+  knowledge_base_configuration {
+    type = "VECTOR"
+    vector_knowledge_base_configuration {
+      # Amazon Titan Embed Text v2 モデルを使用
+      embedding_model_arn = "arn:aws:bedrock:${local.default_region}::foundation-model/amazon.titan-embed-text-v2:0"
+    }
+  }
+
+  # ストレージ設定（Aurora PostgreSQL）
+  storage_configuration {
+    type = "RDS"
+    rds_configuration {
+      # Aurora クラスターの ARN
+      resource_arn = aws_rds_cluster.main_db.arn
+
+      # Secrets Manager で管理されているデータベース認証情報
+      credentials_secret_arn = aws_rds_cluster.main_db.master_user_secret[0].secret_arn
+
+      # データベース名
+      database_name = local.main_db_aurora_cluster_database_name
+
+      # Knowledge Base 用のテーブル名
+      table_name = local.bedrock_knowledge_base_table_name
+
+      # フィールドマッピング設定
+      field_mapping {
+        # プライマリキーフィールド
+        primary_key_field = "id"
+
+        # ベクターデータを格納するフィールド
+        vector_field = "embedding"
+
+        # テキストデータを格納するフィールド
+        text_field = "chunks"
+
+        # メタデータを格納するフィールド
+        metadata_field = "metadata"
+      }
+    }
+  }
+
+  # Knowledge Base が IAM ロールとポリシーに依存することを明示
+  depends_on = [
+    aws_iam_role_policy_attachment.bedrock,
+    aws_rds_cluster.main_db
+  ]
+
+  tags = {
+    Name        = local.bedrock_knowledge_base_name
+    Environment = local.env
+    Purpose     = "Bedrock Knowledge Base with Aurora PostgreSQL"
+  }
+}
+
+# Knowledge Base データソース
+resource "aws_bedrockagent_data_source" "main" {
+  knowledge_base_id = aws_bedrockagent_knowledge_base.main.id
+  name              = local.bedrock_knowledge_base_dsource_name
+  data_source_configuration {
+    type = "S3"
+    s3_configuration {
+      bucket_arn = aws_s3_bucket.knowledgebase.arn
+    }
+  }
+}
+
+# ================================================================
+# Outputs
+# ================================================================
+
+output "bedrock_knowledge_base_id" {
+  description = "ID of the Bedrock Knowledge Base"
+  value       = aws_bedrockagent_knowledge_base.main.id
+}
+
+output "bedrock_knowledge_base_arn" {
+  description = "ARN of the Bedrock Knowledge Base"
+  value       = aws_bedrockagent_knowledge_base.main.arn
+}
+
+output "bedrock_knowledge_base_name" {
+  description = "Name of the Bedrock Knowledge Base"
+  value       = aws_bedrockagent_knowledge_base.main.name
+}
