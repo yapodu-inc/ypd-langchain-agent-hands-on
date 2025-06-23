@@ -2,14 +2,12 @@
 株式会社ヤポドゥの LangChain アプリケーションのハンズオン用のレポジトリです。
 
 ## LangChain アプリケーション構成
+フロントエンドなしで、直接 LangChain アプリケーションにアクセスする構成です。
 ```
-1. ALB (Application Load Balancer) でユーザーのリクエストを受け取る
+1. ユーザーの質問を LangChain が受け取る
        │
        ▼
-2. ALB 経由でユーザーの質問を LangChain が受け取る
-       │
-       ▼
-3. 質問内容をLangChain（エージェント）が解析
+2. 質問内容をLangChain（エージェント）が解析
    - 質問の意図（intent）を識別
    - LangGraphのcreate_react_agentを使用してツール実行を管理
        │
@@ -30,7 +28,6 @@
 2. Model 有効化
 3. Bedrock Knowledge Base の作成
 4. ローカル環境での LangChain アプリケーションの動作確認
-5. ECR の作成と コンテナ push
 
 
 ## 1. Bedrock Knowledge Base 前段階 apply
@@ -63,9 +60,9 @@ S3上のPDF、Markdown、Excel、Wordファイルなどを利用する場合、�
 
 英語&日本語等の検索を行う際は Cohere Embed (Multilingual) がいいらしい。
 
-### 生成用 FM（回答生成・クエリ解析）
-Knowledge Base の確認の際に使用する LLM（Language Model）を選択する
-生成時の LLM を選択することで、Knowledge Base のクエリ解析や回答生成を行うことができる。
+### Knowledge Base 用 LLM の選択（回答生成・クエリ解析）
+Knowledge Base の確認の際に使用する LLM を選択する
+ここで選択するのは、文書の埋め込み（ベクトル化）を行う埋め込みモデルではなく、クエリ解析や回答生成を行うための生成AIモデルである。
 Claude での利用が多いが、今回は Amazon Nova Pro を使用する。
 
 ## 3. Bedrock Knowledge Base の作成
@@ -74,7 +71,6 @@ Bedrock Knowledge Base の作成とデータソースの同期を行う。
 
 ## 4. ローカル環境での LangChain アプリケーションの動作確認
 ローカル環境で LangChain アプリケーション用コンテナを起動し、LangChain アプリケーションの動作確認を行う。
-※ NOTE: 5/27 asana , bedrock の組み込みは未実施 田村
 
 
 # 手順
